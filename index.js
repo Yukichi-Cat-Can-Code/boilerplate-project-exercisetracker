@@ -130,54 +130,57 @@ app.post("/api/users/:_id/exercises", async (req, res) => {
 //Get exercise log GET /api/users/:_id/logs?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=NUMBER
 app.get("/api/users/:_id/logs", async (req, res) => {
   try {
-    const userId = req.params._id;
     const { from, to, limit } = req.query;
+    const userId = req.params._id;
 
     const user = await User.findById(userId).exec();
-    if (!user) return res.status(400).json({ error: "User not found" });
+    if (!user) return res.json({ error: "User not found" });
 
-    //Map to plain object for filtering
     let log = user.log;
 
-    //Apply filters
+    // Apply from filter (inclusive)
     if (from) {
       const fromDate = new Date(from);
-      if (fromDate.toString() === "Invalid Date") {
-        return res.status(400).json({ error: "Invalid 'from' date format" });
+      if (!isNaN(fromDate.getTime())) {
+        log = log.filter((e) => e.date >= fromDate);
       }
-      log = log.filter((entry) => entry.date >= fromDate);
     }
 
+    // Apply to filter (inclusive)
     if (to) {
       const toDate = new Date(to);
-      if (toDate.toString() === "Invalid Date") {
-        return res.status(400).json({ error: "Invalid 'to' date format" });
+      if (!isNaN(toDate.getTime())) {
+        log = log.filter((e) => e.date <= toDate);
       }
-      log = log.filter((entry) => entry.date <= toDate);
     }
 
-    //Sort by date asc
+    // Sort ascending by date
     log.sort((a, b) => a.date - b.date);
 
+    // Apply limit
+    let limitedLog = log;
     if (limit) {
       const lim = parseInt(limit);
-      if (isNaN(lim)) limitedLog = log.slice(0, lim);
+      if (!isNaN(lim)) {
+        limitedLog = log.slice(0, lim);
+      }
     }
 
-    const formattedLog = log.map((entry) => ({
-      description: entry.description,
-      duration: entry.duration,
-      date: entry.date.toDateString(),
+    // Format logs for output
+    const formattedLog = limitedLog.map((ex) => ({
+      description: ex.description,
+      duration: ex.duration,
+      date: ex.date.toDateString(),
     }));
 
-    return res.json({
+    res.json({
       username: user.username,
       _id: user._id,
       count: formattedLog.length,
       log: formattedLog,
     });
   } catch (err) {
-    return res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 

@@ -137,11 +137,7 @@ app.get("/api/users/:_id/logs", async (req, res) => {
     if (!user) return res.status(400).json({ error: "User not found" });
 
     //Map to plain object for filtering
-    let log = user.log.map((exercise) => ({
-      description: exercise.description,
-      duration: exercise.duration,
-      date: exercise.date,
-    }));
+    let log = user.log;
 
     //Apply filters
     if (from) {
@@ -163,13 +159,12 @@ app.get("/api/users/:_id/logs", async (req, res) => {
     //Sort by date asc
     log.sort((a, b) => a.date - b.date);
 
-    let limitedLog = log;
     if (limit) {
       const lim = parseInt(limit);
       if (isNaN(lim)) limitedLog = log.slice(0, lim);
     }
 
-    const formattedLog = limitedLog.map((entry) => ({
+    const formattedLog = log.map((entry) => ({
       description: entry.description,
       duration: entry.duration,
       date: entry.date.toDateString(),
